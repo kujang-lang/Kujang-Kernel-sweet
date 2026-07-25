@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout Repo
@@ -14,22 +14,26 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential bc libncurses5-dev libssl-dev libelf-dev flex bison git ccache zip unzip clang
+          sudo apt install -y build-essential bc libncurses5-dev libssl-dev libelf-dev flex bison git ccache zip unzip clang lld llvm
 
-      - name: Clone Kernel Source & Toolchain
+      - name: Clone Kernel Source & ZyC Clang Toolchain
         run: |
           git clone https://github.com/LineageOS/android_kernel_xiaomi_sweet.git -b lineage-20 --depth=1 kernel
-          git clone https://github.com/kdrag0n/proton-clang.git --depth=1 toolchain/proton-clang
+          git clone https://gitlab.com/ZyNod/clang.git -b zyc-clang-18 --depth=1 toolchain/zyc-clang
 
       - name: Compile Kernel
         run: |
           cd kernel
-          export PATH="$GITHUB_WORKSPACE/toolchain/proton-clang/bin:$PATH"
+          export PATH="$GITHUB_WORKSPACE/toolchain/zyc-clang/bin:$PATH"
           export ARCH=arm64
           export SUBARCH=arm64
           export CC=clang
+          export LLVM=1
+          export LLVM_IAS=1
           export CROSS_COMPILE=aarch64-linux-gnu-
           export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+          export KBUILD_BUILD_USER="kujang-lang"
+          export KBUILD_BUILD_HOST="Kujang-Server"
 
           make O=out vendor/sweet_defconfig
           make -j$(nproc --all) O=out
