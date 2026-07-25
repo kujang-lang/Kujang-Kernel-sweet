@@ -21,15 +21,10 @@ jobs:
           git clone https://github.com/LineageOS/android_kernel_xiaomi_sm6150.git -b lineage-22.1 --depth=1 kernel
           git clone https://github.com/kdrag0n/proton-clang.git --depth=1 toolchain/proton-clang
 
-      - name: Integrate KernelSU
+      - name: Setup KernelSU
         run: |
           cd kernel
-          # Clone KernelSU langsung ke folder drivers/kernelsu
-          git clone https://github.com/tiann/KernelSU.git drivers/kernelsu --depth=1
-          
-          # Tambahkan entri KSU ke drivers/Makefile dan drivers/Kconfig jika belum ada
-          grep -q "kernelsu" drivers/Makefile || echo 'obj-y += kernelsu/' >> drivers/Makefile
-          grep -q "kernelsu" drivers/Kconfig || sed -i '/endmenu/i source "drivers/kernelsu/Kconfig"' drivers/Kconfig
+          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
 
       - name: Compile Kernel
         run: |
@@ -46,8 +41,6 @@ jobs:
           export KBUILD_BUILD_HOST="Kujang-Server"
 
           make O=out sweet_defconfig
-          
-          # Mengaktifkan KernelSU dan OverlayFS
           scripts/config --file out/.config -e CONFIG_KSU
           scripts/config --file out/.config -e CONFIG_OVERLAY_FS
 
