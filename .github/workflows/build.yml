@@ -1,4 +1,4 @@
-name: Build Kernel Sweet
+name: Build Kernel Sweet with KernelSU
 
 on:
   workflow_dispatch:
@@ -14,12 +14,17 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential bc libncurses5-dev libssl-dev libelf-dev flex bison git ccache zip unzip clang lld llvm
+          sudo apt install -y build-essential bc libncurses5-dev libssl-dev libelf-dev flex bison git ccache zip unzip clang lld llvm curl
 
       - name: Clone Kernel Source & Toolchain
         run: |
           git clone https://github.com/LineageOS/android_kernel_xiaomi_sm6150.git -b lineage-22.1 --depth=1 kernel
           git clone https://github.com/kdrag0n/proton-clang.git --depth=1 toolchain/proton-clang
+
+      - name: Setup KernelSU
+        run: |
+          cd kernel
+          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
 
       - name: Compile Kernel
         run: |
@@ -35,7 +40,10 @@ jobs:
           export KBUILD_BUILD_USER="kujang-lang"
           export KBUILD_BUILD_HOST="Kujang-Server"
 
-          make O=out vendor/sweet_defconfig
+          # Menggunakan sweet_defconfig yang sesuai
+          make O=out sweet_defconfig
+          scripts/config --file out/.config -e CONFIG_KSU -e CONFIG_OVERLAY_FS
+
           make -j$(nproc --all) O=out
 
       - name: Prepare AnyKernel3
@@ -43,10 +51,10 @@ jobs:
           git clone https://github.com/osm0sis/AnyKernel3.git --depth=1 AK3
           cp kernel/out/arch/arm64/boot/Image.gz-dtb AK3/ 2>/dev/null || cp kernel/out/arch/arm64/boot/Image.gz AK3/
           cd AK3
-          zip -r9 Kujang-Kernel-sweet.zip *
+          zip -r9 Kujang-Kernel-KSU-sweet.zip *
 
       - name: Upload Flashable Zip
         uses: actions/upload-artifact@v4
         with:
-          name: Kujang-Kernel-sweet
-          path: AK3/Kujang-Kernel-sweet.zip
+          name: Kujang-Kernel-KSU-sweet
+          path: AK3/Kujang-Kernel-KSU-sweet.zip
