@@ -18,13 +18,25 @@ jobs:
 
       - name: Clone Kernel Source & Toolchain
         run: |
-          git clone https://github.com/LineageOS/android_kernel_xiaomi_sm6150.git -b lineage-22.1 --depth=1 kernel
+          # Mengambil source kernel dari repo publik yang memiliki patch hook
+          git clone https://github.com/fiqri19102002/android_kernel_xiaomi_sm6150.git -b lineage-20 kernel
           git clone https://github.com/kdrag0n/proton-clang.git --depth=1 toolchain/proton-clang
 
-      - name: Setup KernelSU
+      - name: Setup KernelSU & Apply Hook
         run: |
           cd kernel
-          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
+          
+          # 1. Clone KernelSU ke folder drivers/kernelsu
+          git clone https://github.com/tiann/KernelSU.git drivers/kernelsu --depth=1
+          
+          # 2. Tambahkan entri KSU ke Makefile & Kconfig
+          echo 'obj-y += kernelsu/' >> drivers/Makefile
+          echo 'source "drivers/kernelsu/Kconfig"' >> drivers/Kconfig
+
+          # 3. Jika repo target menyediakan patch hook, pasang otomatis
+          if [ -f "KernelSU-hook.patch" ]; then
+            git apply KernelSU-hook.patch || echo "Patch manual diskip/sudah ter-apply"
+          fi
 
       - name: Compile Kernel
         run: |
