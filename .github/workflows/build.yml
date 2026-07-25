@@ -1,4 +1,4 @@
-name: Build Kernel Sweet with KernelSU
+name: Build Kernel Sweet with KSU Next & SUSFS
 
 on:
   workflow_dispatch:
@@ -21,10 +21,21 @@ jobs:
           git clone https://github.com/LineageOS/android_kernel_xiaomi_sm6150.git -b lineage-22.1 --depth=1 kernel
           git clone https://github.com/kdrag0n/proton-clang.git --depth=1 toolchain/proton-clang
 
-      - name: Setup KernelSU
+      - name: Setup KernelSU Next & SUSFS Hooks
         run: |
           cd kernel
-          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
+          # Mengunduh KernelSU Next terbaru dengan support SUSFS
+          curl -LSs "https://raw.githubusercontent.com/rifs250/KernelSU-Next/next/kernel/setup.sh" | bash -s next
+          
+          # Clone SUSFS patch repository
+          git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android12-5.10 susfs
+          
+          # Salin header & file susfs ke kernel tree
+          cp susfs/kernel_patches/include/linux/susfs.h include/linux/
+          cp susfs/kernel_patches/fs/susfs.c fs/
+          
+          # Terapkan patch susfs ke kernel fs
+          patch -p1 < susfs/kernel_patches/5.4/0001-susfs_v5.4.patch || true
 
       - name: Compile Kernel
         run: |
@@ -40,9 +51,13 @@ jobs:
           export KBUILD_BUILD_USER="kujang-lang"
           export KBUILD_BUILD_HOST="Kujang-Server"
 
-          # Menggunakan sweet_defconfig yang sesuai
           make O=out sweet_defconfig
-          scripts/config --file out/.config -e CONFIG_KSU -e CONFIG_OVERLAY_FS
+          
+          # Konfigurasi aktifkan KSU, OverlayFS, dan SUSFS
+          scripts/config --file out/.config -e CONFIG_KSU
+          scripts/config --file out/.config -e CONFIG_KSU_SUSFS
+          scripts/config --file out/.config -e CONFIG_KSU_SUSFS_HAS_SU_PATH
+          scripts/config --file out/.config -e CONFIG_OVERLAY_FS
 
           make -j$(nproc --all) O=out
 
@@ -51,10 +66,10 @@ jobs:
           git clone https://github.com/osm0sis/AnyKernel3.git --depth=1 AK3
           cp kernel/out/arch/arm64/boot/Image.gz-dtb AK3/ 2>/dev/null || cp kernel/out/arch/arm64/boot/Image.gz AK3/
           cd AK3
-          zip -r9 Kujang-Kernel-KSU-sweet.zip *
+          zip -r9 Kujang-Kernel-KSUNext-SUSFS-sweet.zip *
 
       - name: Upload Flashable Zip
         uses: actions/upload-artifact@v4
         with:
-          name: Kujang-Kernel-KSU-sweet
-          path: AK3/Kujang-Kernel-KSU-sweet.zip
+          name: Kujang-Kernel-KSUNext-SUSFS-sweet
+          path: AK3/Kujang-Kernel-KSUNext-SUSFS-sweet.zip
