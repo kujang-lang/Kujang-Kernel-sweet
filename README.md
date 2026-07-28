@@ -43,8 +43,7 @@ Focus on **stability**, **power efficiency**, and a smooth everyday experience o
 
 *(List your supported devices here)*
 
-- Device A
-- Device B
+- Only for redmi note 10 pro/pro max (Sweet/Sweetin)
 
 ---
 
